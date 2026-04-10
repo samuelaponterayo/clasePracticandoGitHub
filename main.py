@@ -8,7 +8,7 @@ from sqlmodel import Field, Session, SQLModel, create_engine, select, Relationsh
 from typing import Annotated
 from datetime import datetime, timezone
 from dotenv import load_dotenv
-import os
+import os #asdf
 
 load_dotenv()  # ← mover al inicio
 
