@@ -1,6 +1,6 @@
 # main.py — versión nueva
 from pydantic import BaseModel
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -9,6 +9,7 @@ from typing import Annotated
 from datetime import datetime, timezone
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
+import hashlib
 import os
 
 load_dotenv()
@@ -20,13 +21,24 @@ def format_role(role: str) -> str:
     return "Tú" if role == "user" else "Chatbot"
 
 
+def hash_password(password: str) -> str:
+    return hashlib.sha256(password.encode()).hexdigest()
+
+
 # ── Modelos ──────────────────────────────────────────────
+class User(SQLModel, table=True):
+      id: int | None = Field(default=None, primary_key=True)
+      username: str = Field(unique=True, index=True)
+      password_hash: str
+      conversations: list["Conversation"] = Relationship(back_populates="user")
+
 class Conversation(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     title: str = Field(default="Nueva conversación")
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     messages: list["Message"] = Relationship(back_populates="conversation")
-
+    user_id: int | None = Field(default=None, foreign_key="user.id")
+    user: User | None = Relationship(back_populates="conversations")
 
 class Message(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
@@ -49,6 +61,25 @@ class ConversationOut(SQLModel):
     id: int
     title: str
     created_at: datetime
+
+
+class RegisterRequest(BaseModel):
+    username: str
+    password: str
+
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+
+class UserOut(BaseModel):
+    id: int
+    username: str
+
+
+class ConversationUpdate(BaseModel):
+    title: str
 
 
 class ChatRequest(BaseModel):
@@ -97,10 +128,31 @@ def root():
     return FileResponse("static/index.html")
 
 
+# ── Auth ──────────────────────────────────────────────────────
+@app.post("/register", response_model=UserOut)
+def register(body: RegisterRequest, session: SessionDep):
+    existing = session.exec(select(User).where(User.username == body.username)).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="El usuario ya existe")
+    user = User(username=body.username, password_hash=hash_password(body.password))
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+    return user
+
+
+@app.post("/login", response_model=UserOut)
+def login(body: LoginRequest, session: SessionDep):
+    user = session.exec(select(User).where(User.username == body.username)).first()
+    if not user or user.password_hash != hash_password(body.password):
+        raise HTTPException(status_code=401, detail="Credenciales inválidas")
+    return user
+
+
 # ── Endpoints de Conversaciones ───────────────────────────────
 @app.post("/conversations/", response_model=ConversationOut)
-def create_conversation(session: SessionDep):
-    conv = Conversation()
+def create_conversation(session: SessionDep, user_id: int | None = Query(default=None)):
+    conv = Conversation(user_id=user_id)
     session.add(conv)
     session.commit()
     session.refresh(conv)
@@ -108,8 +160,23 @@ def create_conversation(session: SessionDep):
 
 
 @app.get("/conversations/", response_model=list[ConversationOut])
-def list_conversations(session: SessionDep):
-    return session.exec(select(Conversation)).all()
+def list_conversations(session: SessionDep, user_id: int | None = Query(default=None)):
+    query = select(Conversation)
+    if user_id:
+        query = query.where(Conversation.user_id == user_id)
+    return session.exec(query).all()
+
+
+@app.patch("/conversations/{conv_id}", response_model=ConversationOut)
+def rename_conversation(conv_id: int, body: ConversationUpdate, session: SessionDep):
+    conv = session.get(Conversation, conv_id)
+    if not conv:
+        raise HTTPException(status_code=404, detail="Conversación no encontrada")
+    conv.title = body.title
+    session.add(conv)
+    session.commit()
+    session.refresh(conv)
+    return conv
 
 
 @app.get("/conversations/{conv_id}/messages", response_model=list[MessageOut])

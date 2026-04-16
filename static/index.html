@@ -7,158 +7,388 @@
     <style>
       *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-      body {
-        font-family: system-ui, Arial, sans-serif;
-        display: flex;
-        height: 100vh;
-        background: #f0f2f5;
+      :root {
+        --bg:           #f8fafc;
+        --surface:      #ffffff;
+        --surface-2:    #f1f5f9;
+        --primary:      #6366f1;
+        --primary-dark: #4f46e5;
+        --primary-soft: #eef2ff;
+        --text:         #0f172a;
+        --muted:        #64748b;
+        --border:       #e2e8f0;
+        --danger:       #ef4444;
+        --shadow:       0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.04);
       }
 
-      /* ── Sidebar ── */
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+        display: flex;
+        height: 100vh;
+        background: var(--bg);
+        color: var(--text);
+        overflow: hidden;
+      }
+
+      /* ── Auth overlay ───────────────────────────────── */
+      #auth-overlay {
+        position: fixed;
+        inset: 0;
+        background: var(--bg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 100;
+      }
+      #auth-overlay.hidden { display: none; }
+
+      .auth-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 2rem;
+        width: 100%;
+        max-width: 380px;
+        box-shadow: 0 8px 32px rgba(0,0,0,.1);
+      }
+
+      .auth-card h1 { font-size: 1.4rem; font-weight: 700; margin-bottom: .3rem; color: var(--text); }
+      .auth-card > p { font-size: .88rem; color: var(--muted); margin-bottom: 1.5rem; }
+
+      .auth-tabs {
+        display: flex;
+        gap: .4rem;
+        margin-bottom: 1.5rem;
+        background: var(--surface-2);
+        padding: .3rem;
+        border-radius: 10px;
+      }
+      .auth-tab {
+        flex: 1;
+        padding: .5rem;
+        border: none;
+        background: transparent;
+        color: var(--muted);
+        border-radius: 7px;
+        cursor: pointer;
+        font-size: .88rem;
+        font-weight: 500;
+        transition: all .15s;
+        font-family: inherit;
+      }
+      .auth-tab.active { background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
+
+      .auth-form { display: flex; flex-direction: column; gap: .75rem; }
+      .auth-form.hidden { display: none; }
+
+      .auth-form input {
+        padding: .7rem .9rem;
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        color: var(--text);
+        font-size: .95rem;
+        outline: none;
+        transition: border-color .15s, background .15s;
+        font-family: inherit;
+      }
+      .auth-form input:focus { border-color: var(--primary); background: var(--surface); }
+      .auth-form input::placeholder { color: var(--muted); }
+
+      .auth-btn {
+        padding: .75rem;
+        background: var(--primary);
+        color: #fff;
+        border: none;
+        border-radius: 10px;
+        font-size: .95rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background .15s;
+        margin-top: .25rem;
+        font-family: inherit;
+      }
+      .auth-btn:hover { background: var(--primary-dark); }
+
+      .auth-error {
+        font-size: .83rem;
+        color: var(--danger);
+        text-align: center;
+        min-height: 1rem;
+      }
+
+      /* ── Sidebar ────────────────────────────────────── */
       #sidebar {
         width: 260px;
-        background: #1a1a2e;
-        color: #cdd5e0;
+        background: var(--surface);
+        border-right: 1px solid var(--border);
         display: flex;
         flex-direction: column;
         flex-shrink: 0;
       }
 
-      #sidebar h2 {
+      .sidebar-header {
+        padding: 1rem;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        gap: .75rem;
+      }
+
+      .user-avatar {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        background: var(--primary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
         font-size: .9rem;
+        flex-shrink: 0;
+        color: #fff;
+      }
+
+      .user-info { flex: 1; min-width: 0; }
+      .user-name  { font-size: .9rem; font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .user-label { font-size: .72rem; color: var(--muted); }
+
+      #logout-btn {
+        background: none;
+        border: none;
+        color: var(--muted);
+        cursor: pointer;
+        padding: .3rem .4rem;
+        border-radius: 6px;
+        font-size: .8rem;
+        transition: color .15s;
+        flex-shrink: 0;
+      }
+      #logout-btn:hover { color: var(--danger); }
+
+      .sidebar-section {
+        padding: .9rem 1rem .4rem;
+        font-size: .71rem;
+        font-weight: 600;
         text-transform: uppercase;
         letter-spacing: .08em;
-        padding: 1.2rem 1rem .6rem;
-        color: #8892a4;
+        color: var(--muted);
       }
 
       #new-conv-btn {
-        margin: 0 .75rem .75rem;
-        padding: .55rem .8rem;
-        background: #0b93f6;
-        color: #fff;
-        border: none;
-        border-radius: 8px;
-        cursor: pointer;
-        font-size: .9rem;
-        font-weight: 600;
-      }
-      #new-conv-btn:hover { background: #0a7fd4; }
-
-      #conv-list {
-        flex: 1;
-        overflow-y: auto;
-        padding: 0 .5rem;
-      }
-
-      .conv-item {
-        padding: .55rem .75rem;
-        border-radius: 8px;
+        margin: 0 .75rem .6rem;
+        padding: .6rem .9rem;
+        background: var(--primary-soft);
+        color: var(--primary);
+        border: 1px solid #c7d2fe;
+        border-radius: 10px;
         cursor: pointer;
         font-size: .88rem;
+        font-weight: 600;
+        transition: background .15s;
+        font-family: inherit;
+      }
+      #new-conv-btn:hover { background: #e0e7ff; }
+
+      #conv-list { flex: 1; overflow-y: auto; padding: 0 .5rem .5rem; }
+      #conv-list::-webkit-scrollbar { width: 4px; }
+      #conv-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+      .conv-item {
+        padding: .6rem .75rem;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: .87rem;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
-        color: #cdd5e0;
+        color: var(--muted);
+        transition: background .1s, color .1s;
+        position: relative;
       }
-      .conv-item:hover { background: #252540; }
-      .conv-item.active { background: #0b93f6; color: #fff; }
+      .conv-item:hover { background: var(--surface-2); color: var(--text); }
+      .conv-item.active { background: var(--primary-soft); color: var(--primary); font-weight: 500; }
 
-      /* ── Main ── */
-      #main {
-        flex: 1;
+      .conv-item input.rename-input {
+        width: 100%;
+        background: var(--surface);
+        border: 1px solid var(--primary);
+        border-radius: 5px;
+        padding: .1rem .4rem;
+        font-size: .87rem;
+        color: var(--text);
+        outline: none;
+        font-family: inherit;
+      }
+
+      /* ── Main ───────────────────────────────────────── */
+      #main { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: var(--bg); }
+
+      #chat-header {
+        padding: .9rem 1.5rem;
+        border-bottom: 1px solid var(--border);
+        font-size: .95rem;
+        font-weight: 600;
+        color: var(--text);
+        background: var(--surface);
+        min-height: 54px;
         display: flex;
-        flex-direction: column;
-        overflow: hidden;
+        align-items: center;
       }
 
       #chat {
         flex: 1;
         overflow-y: auto;
-        padding: 1.5rem 1.5rem 1rem;
+        padding: 1.5rem;
         display: flex;
         flex-direction: column;
-        gap: .6rem;
+        gap: 1rem;
       }
+      #chat::-webkit-scrollbar { width: 6px; }
+      #chat::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 
       #empty-state {
         flex: 1;
         display: flex;
+        flex-direction: column;
         align-items: center;
         justify-content: center;
-        color: #888;
-        font-size: 1rem;
+        gap: .6rem;
+        color: var(--muted);
       }
+      #empty-state .empty-icon { font-size: 2.5rem; opacity: .4; }
 
-      .message { display: flex; flex-direction: column; }
-      .message.user { align-items: flex-end; }
-      .message.model { align-items: flex-start; }
+      .message { display: flex; flex-direction: column; max-width: 72%; }
+      .message.user  { align-self: flex-end;   align-items: flex-end; }
+      .message.model { align-self: flex-start; align-items: flex-start; }
 
       .bubble {
-        max-width: 72%;
-        padding: .65rem .9rem;
-        border-radius: 14px;
-        background: #fff;
-        box-shadow: 0 1px 2px rgba(0,0,0,.08);
-        line-height: 1.5;
-        font-size: .95rem;
+        padding: .75rem 1rem;
+        border-radius: 16px;
+        line-height: 1.6;
+        font-size: .94rem;
       }
-      .message.user .bubble { background: #0b93f6; color: #fff; }
+      .message.user .bubble {
+        background: var(--primary);
+        color: #fff;
+        border-bottom-right-radius: 4px;
+      }
+      .message.model .bubble {
+        background: var(--surface);
+        color: var(--text);
+        border: 1px solid var(--border);
+        border-bottom-left-radius: 4px;
+        box-shadow: var(--shadow);
+      }
 
-      .meta { font-size: .7rem; color: #999; margin-top: .2rem; }
+      .meta { font-size: .7rem; color: var(--muted); margin-top: .25rem; }
 
-      /* Markdown dentro del bubble */
-      .bubble pre { background: #0d1117; color: #e6edf3; padding: .7rem; border-radius: 6px; overflow-x: auto; margin: .4rem 0; }
-      .bubble code { background: #f0f2f5; padding: 2px 5px; border-radius: 4px; font-size: .88em; }
-      .bubble pre code { background: transparent; padding: 0; }
-      .bubble blockquote { border-left: 3px solid #ddd; padding-left: .7rem; color: #666; }
-      .bubble p { margin: .3rem 0; }
-      .bubble ul, .bubble ol { padding-left: 1.2rem; margin: .3rem 0; }
+      .bubble pre  { background: #1e293b; color: #e2e8f0; padding: .75rem; border-radius: 8px; overflow-x: auto; margin: .5rem 0; }
+      .bubble code { background: var(--surface-2); padding: 2px 5px; border-radius: 4px; font-size: .85em; color: var(--primary-dark); }
+      .bubble pre code { background: transparent; padding: 0; color: #e2e8f0; }
+      .bubble p    { margin: .3rem 0; }
+      .bubble ul, .bubble ol { padding-left: 1.3rem; margin: .3rem 0; }
 
-      /* ── Composer ── */
+      /* ── Composer ───────────────────────────────────── */
       #composer {
-        padding: .75rem 1.5rem 1rem;
-        background: #f0f2f5;
+        padding: .9rem 1.5rem;
+        background: var(--surface);
+        border-top: 1px solid var(--border);
         display: flex;
-        gap: .5rem;
+        gap: .6rem;
+        align-items: flex-end;
       }
+
       #prompt {
         flex: 1;
-        padding: .65rem .9rem;
-        font-size: .95rem;
-        border: 1px solid #d0d7de;
-        border-radius: 10px;
+        padding: .7rem 1rem;
+        font-size: .94rem;
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: 12px;
         outline: none;
-        background: #fff;
+        color: var(--text);
+        resize: none;
+        min-height: 44px;
+        max-height: 140px;
+        transition: border-color .15s, background .15s;
+        font-family: inherit;
+        line-height: 1.5;
       }
-      #prompt:focus { border-color: #0b93f6; }
+      #prompt::placeholder { color: var(--muted); }
+      #prompt:focus { border-color: var(--primary); background: var(--surface); }
+      #prompt:disabled { opacity: .4; cursor: not-allowed; }
+
       #send {
-        padding: .65rem 1.1rem;
-        background: #0b93f6;
+        padding: 0 1.2rem;
+        background: var(--primary);
         color: #fff;
         border: none;
-        border-radius: 10px;
-        font-size: .95rem;
+        border-radius: 12px;
+        font-size: .94rem;
         font-weight: 600;
         cursor: pointer;
+        transition: background .15s;
+        flex-shrink: 0;
+        height: 44px;
+        font-family: inherit;
       }
-      #send:hover { background: #0a7fd4; }
-      #send:disabled { background: #aac8e8; cursor: not-allowed; }
+      #send:hover { background: var(--primary-dark); }
+      #send:disabled { opacity: .4; cursor: not-allowed; }
     </style>
   </head>
   <body>
+
+    <!-- Auth -->
+    <div id="auth-overlay">
+      <div class="auth-card">
+        <h1>LLM Chat</h1>
+        <p>Ingresá para continuar</p>
+        <div class="auth-tabs">
+          <button class="auth-tab active" data-tab="login">Iniciar sesión</button>
+          <button class="auth-tab" data-tab="register">Registrarse</button>
+        </div>
+
+        <form class="auth-form" id="login-form">
+          <input type="text"     id="login-username" placeholder="Usuario"     autocomplete="username"         required />
+          <input type="password" id="login-password" placeholder="Contraseña"  autocomplete="current-password" required />
+          <div class="auth-error" id="login-error"></div>
+          <button type="submit" class="auth-btn">Ingresar</button>
+        </form>
+
+        <form class="auth-form hidden" id="register-form">
+          <input type="text"     id="reg-username" placeholder="Usuario"     autocomplete="username"     required />
+          <input type="password" id="reg-password" placeholder="Contraseña"  autocomplete="new-password" required />
+          <div class="auth-error" id="reg-error"></div>
+          <button type="submit" class="auth-btn">Crear cuenta</button>
+        </form>
+      </div>
+    </div>
+
     <aside id="sidebar">
-      <h2>Conversaciones</h2>
-      <button id="new-conv-btn">+ Nueva</button>
+      <div class="sidebar-header">
+        <div class="user-avatar" id="user-avatar">?</div>
+        <div class="user-info">
+          <div class="user-name" id="user-name">—</div>
+          <div class="user-label">usuario</div>
+        </div>
+        <button id="logout-btn" title="Cerrar sesión">✕</button>
+      </div>
+      <div class="sidebar-section">Conversaciones</div>
+      <button id="new-conv-btn">＋ Nueva conversación</button>
       <div id="conv-list"></div>
     </aside>
 
     <main id="main">
+      <div id="chat-header">Seleccioná una conversación</div>
       <div id="chat">
-        <div id="empty-state">Seleccioná o creá una conversación</div>
+        <div id="empty-state">
+          <div class="empty-icon">💬</div>
+          <p>Seleccioná o creá una conversación</p>
+        </div>
       </div>
       <form id="composer" onsubmit="return false;">
-        <input id="prompt" type="text" placeholder="Escribe un mensaje..." autocomplete="off" disabled />
+        <textarea id="prompt" placeholder="Escribe un mensaje..." autocomplete="off" disabled rows="1"></textarea>
         <button id="send" disabled>Enviar</button>
       </form>
     </main>
