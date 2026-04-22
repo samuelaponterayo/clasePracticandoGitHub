@@ -188,7 +188,7 @@ def get_messages(conv_id: int, session: SessionDep):
 
 
 @app.post("/conversations/{conv_id}/chat", response_model=MessageOut)
-def chat(conv_id: int, body: ChatRequest, session: SessionDep):
+def chat(conv_id: int, body: ChatRequest, session: SessionDep, style: str | None = Query(default=None)):
     # 1. Verificar que existe la conversación
     conv = session.get(Conversation, conv_id)
     if not conv:
@@ -213,9 +213,26 @@ def chat(conv_id: int, body: ChatRequest, session: SessionDep):
         for msg in history[:-1]  # todo excepto el último (recién guardado)
     ]
 
+    # Si se solicita el estilo "cat", añadimos una instrucción del sistema
+    system_prompt = {
+        "role": "system",
+        "parts": [
+            {
+                "text": (
+                    "Responde como un gato: usa frases cortas, actitud curiosa y juguetona, "
+                    "añade 'miau' ocasionalmente. Responde en español."
+                )
+            }
+        ],
+    }
+
+    contents = ([system_prompt] if style == "cat" else []) + gemini_history + [
+        {"role": "user", "parts": [{"text": body.message}]}
+    ]
+
     response = client.models.generate_content(
         model="gemini-3-flash-preview",
-        contents=gemini_history + [{"role": "user", "parts": [{"text": body.message}]}],
+        contents=contents,
     )
 
     # 5. Guardar respuesta del modelo
