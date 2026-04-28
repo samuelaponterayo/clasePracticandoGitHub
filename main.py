@@ -18,7 +18,7 @@ from google import genai
 
 
 def format_role(role: str) -> str:
-    return "Tú" if role == "user" else "Chatbot"
+    return "Usted" if role == "user" else "Chatbot"
 
 
 def hash_password(password: str) -> str:
@@ -87,7 +87,7 @@ class ChatRequest(BaseModel):
 
 
 # ── Base de datos ─────────────────────────────────────────
-DATABASE_URL = os.getenv("DATABASE_URL")
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///database.db")
 engine = create_engine(DATABASE_URL)
 
 
@@ -209,7 +209,7 @@ def chat(conv_id: int, body: ChatRequest, session: SessionDep, style: str | None
     # 4. Llamar a Gemini con todo el historial
     client = genai.Client()
     gemini_history = [
-        {"role": msg.role, "parts": [{"text": msg.content}]}
+        {"role": msg.role, "parts": [{"text": "Respondeme como si fueras mi bro del alma" + msg.content}]}
         for msg in history[:-1]  # todo excepto el último (recién guardado)
     ]
 
