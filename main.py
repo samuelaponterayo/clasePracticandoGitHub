@@ -49,7 +49,7 @@ class Message(SQLModel, table=True):
     conversation: Conversation | None = Relationship(back_populates="messages")
 
 
-# ── Schemas de respuesta (separar tabla de lo que devolvemos)!!! ──
+# ── Schemas de respuesta (separar tabla de lo que devolvemos)!!!!!! ──
 class MessageOut(SQLModel):
     id: int
     role: str
