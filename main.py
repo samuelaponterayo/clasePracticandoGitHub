@@ -171,7 +171,7 @@ def list_conversations(session: SessionDep, user_id: int | None = Query(default=
 def rename_conversation(conv_id: int, body: ConversationUpdate, session: SessionDep):
     conv = session.get(Conversation, conv_id)
     if not conv:
-        raise HTTPException(status_code=404, detail="Conversación no encontrada")
+        raise HTTPException(status_code=404, detail="La conversación no fue encontrada")
     conv.title = body.title
     session.add(conv)
     session.commit()
