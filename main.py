@@ -18,7 +18,7 @@ from google import genai
 
 
 def format_role(role: str) -> str:
-    return "Usted" if role == "user" else "Chatbot"
+    return "Usted" if role == "user" else "Chatbot" # comment 2
 
 
 def hash_password(password: str) -> str:
@@ -49,7 +49,7 @@ class Message(SQLModel, table=True):
     conversation: Conversation | None = Relationship(back_populates="messages")
 
 
-# ── Schemas de respuesta (separar tabla de lo que devolvemos) ──
+# ── Schemas de respuesta (separar tabla de lo que devolvemos)!!!!!! ──
 class MessageOut(SQLModel):
     id: int
     role: str
@@ -126,6 +126,11 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 @app.get("/")
 def root():
     return FileResponse("static/index.html")
+
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}
 
 
 # ── Auth ──────────────────────────────────────────────────────

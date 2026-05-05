@@ -1,5 +1,5 @@
 # .github/workflows/ci.yml
-name: CI
+name: CI/CD
 
 on:
   push:
@@ -8,15 +8,16 @@ on:
     branches: [ "main" ]
 
 jobs:
+  # ─────────────────────────────────────────────
+  # 1) CI — corre en push y en PR
+  # ─────────────────────────────────────────────
   test:
+    name: Unit tests
     runs-on: ubuntu-latest
-
     steps:
-      - name: Clonar el repo
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           cache: "pip"
@@ -26,5 +27,105 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Correr tests
+      - name: Correr tests unitarios
         run: pytest tests/unit/ -v
+
+  # ─────────────────────────────────────────────
+  # 2) MIGRATE — corre alembic contra la DB de producción
+  # Solo en push a main. Si falla, no se deploya.
+  # ─────────────────────────────────────────────
+  migrate:
+    name: Migrar base de datos
+    needs: test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Instalar dependencias
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: alembic upgrade head
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: alembic upgrade head
+
+  # ─────────────────────────────────────────────
+  # 3) DEPLOY — dispara el deploy hook de Render
+  # ─────────────────────────────────────────────
+  deploy:
+    name: Disparar deploy en Render
+    needs: migrate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Render Deploy Hook
+        run: |
+          curl --fail -X POST "${{ secrets.RENDER_DEPLOY_HOOK }}"
+
+  # ─────────────────────────────────────────────
+  # 4) SMOKE TEST — espera que la app esté viva en producción
+  # Hace polling a /health hasta que responde 200 o se acaba el timeout.
+  # ─────────────────────────────────────────────
+  smoke:
+    name: Smoke test (/health)
+    needs: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Esperar que /health responda 200
+        env:
+          PROD_BASE_URL: ${{ secrets.PROD_BASE_URL }}
+        run: |
+          echo "Esperando deploy en $PROD_BASE_URL..."
+          for i in $(seq 1 60); do
+            code=$(curl -s -o /dev/null -w "%{http_code}" "$PROD_BASE_URL/health" || echo "000")
+            echo "Intento $i — HTTP $code"
+            if [ "$code" = "200" ]; then
+              echo "✅ App viva"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "❌ Timeout: la app no respondió 200 en 10 minutos"
+          exit 1
+
+  # ─────────────────────────────────────────────
+  # 5) E2E — Playwright contra la app YA deployada en producción
+  # ─────────────────────────────────────────────
+  e2e:
+    name: E2E contra producción
+    needs: smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Instalar dependencias
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Instalar browsers de Playwright
+        run: playwright install --with-deps chromium
+
+      - name: Correr E2E
+        env:
+          E2E_BASE_URL: ${{ secrets.PROD_BASE_URL }}
+        run: pytest tests/e2e/test_e2e.py -v
+
+      - name: Subir traces si falla
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-traces
+          path: test-results/

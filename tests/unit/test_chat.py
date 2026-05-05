@@ -6,7 +6,7 @@ from main import Conversation, Message
 # ── 1. Unitario: función auxiliar ────────────────────────────────
 def test_format_role_user():
     from main import format_role
-    assert format_role("user") == "Tú"
+    assert format_role("user") == "Usted"
 
 def test_format_role_model():
     from main import format_role
