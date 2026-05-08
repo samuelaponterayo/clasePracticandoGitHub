@@ -197,7 +197,7 @@ def chat(conv_id: int, body: ChatRequest, session: SessionDep, style: str | None
     # 1. Verificar que existe la conversación
     conv = session.get(Conversation, conv_id)
     if not conv:
-        raise HTTPException(status_code=404, detail="La conversación no fue encontrada")
+        raise HTTPException(status_code=404, detail="Conversación no encontrada")
 
     # 2. Guardar mensaje del usuario
     user_msg = Message(conversation_id=conv_id, role="user", content=body.message)
