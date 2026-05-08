@@ -1,6 +1,6 @@
 # claseLlm
 
-Repositorio de clases prácticas sobre desarrollo de software con LLMs.
+Repositorio de clases prácticas sobre el desarrollo de software con LLMs.
 
 ## Clases
 
