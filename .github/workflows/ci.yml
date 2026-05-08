@@ -80,7 +80,7 @@ jobs:
     steps:
       - name: Esperar que /health responda 200
         env:
-          PROD_BASE_URL: ${{ secrets.PROD_BASE_URL }}
+          PROD_BASE_URL: ${{ secrets.PROD_BASE_URL }} || 'postgresql://chat_user:MLjmo4VlkHv06GbZWfHcijkOJbt71rbh@dpg-d7k1bd1j2pic73dnj5t0-a.oregon-postgres.render.com/chatdb_lkrd '
         run: |
           echo "Esperando deploy en $PROD_BASE_URL..."
           for i in $(seq 1 60); do
